@@ -139,7 +139,8 @@ def main():
 
     hechos, omitidos, errores = 0, 0, 0
     for fila in leer_filas(origen):
-        fila = {(k or "").strip().lower(): (v or "").strip() for k, v in fila.items()}
+        # DictReader guarda las celdas sobrantes bajo la clave None (como lista): se ignoran
+        fila = {k.strip().lower(): (v or "").strip() for k, v in fila.items() if isinstance(k, str)}
         id_, diseno_url = fila.get("id", ""), fila.get("diseno", "")
         if not id_ or not diseno_url:
             continue  # fila sin diseno por capas: no hay montaje que hacer
