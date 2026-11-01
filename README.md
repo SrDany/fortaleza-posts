@@ -9,9 +9,7 @@ URL publica de cada foto:
 
 ## Puesta en marcha
 1. Repo publico nuevo en GitHub (rama `main`) y subir todo el contenido de esta carpeta (incluida `.github/`).
-2. Settings > Secrets and variables > Actions > pestaña **Variables** > New repository variable:
-   - Nombre: `SHEET_CSV_URL`
-   - Valor: la URL del CSV publicado de tu Sheet (la misma `SHEET_CSV_URL` de catalogo.html).
+2. (Opcional) Variable `SHEET_CSV_URL` en Settings > Secrets and variables > Actions > Variables. Si no la creas, se usa el CSV publicado del sitio.
 3. Settings > Actions > General > Workflow permissions: **Read and write permissions**.
 4. Pestaña Actions > "Generar fotos para redes" > Run workflow (primera corrida).
 

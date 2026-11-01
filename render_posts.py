@@ -6,7 +6,7 @@ Por cada fila con columna `diseno` crea posts/<id>.jpg (1080x1080).
 Solo re-renderiza lo nuevo o lo que cambio (manifest.json guarda una huella por fila).
 
 Variables de entorno:
-  SHEET_CSV_URL  URL del CSV publicado del Sheet (la misma que usa el sitio).
+  SHEET_CSV_URL  (opcional) URL del CSV publicado del Sheet. Si falta, se usa el del sitio.
 """
 import csv
 import hashlib
@@ -29,6 +29,11 @@ BASES = {
 }
 FONDO = (245, 245, 242)
 SALIDA = 1080
+# CSV publicado del Sheet "productos" (el mismo que usa el sitio). Se puede sobreescribir con la variable SHEET_CSV_URL.
+SHEET_CSV_POR_DEFECTO = (
+    "https://docs.google.com/spreadsheets/d/e/"
+    "2PACX-1vSW8cZeRPj4JAFbjGqg2SmZzyiKmwRvQfSBZrGI6gwCpJbL1YaEAio6fXOhjgpntojFaXRwDK-9PY89/pub?gid=0&single=true&output=csv"
+)
 VERSION_RENDER = "1"  # subelo si cambias el aspecto del montaje para re-renderizar todo
 
 with open(os.path.join(RAIZ, "colores.json"), encoding="utf-8") as f:
@@ -126,9 +131,7 @@ def nombre_archivo(id_):
 
 
 def main():
-    origen = os.environ.get("SHEET_CSV_URL") or (sys.argv[1] if len(sys.argv) > 1 else "")
-    if not origen:
-        sys.exit("Falta SHEET_CSV_URL")
+    origen = os.environ.get("SHEET_CSV_URL") or (sys.argv[1] if len(sys.argv) > 1 else "") or SHEET_CSV_POR_DEFECTO
     carpeta = os.path.join(RAIZ, "posts")
     os.makedirs(carpeta, exist_ok=True)
     ruta_manifest = os.path.join(RAIZ, "manifest.json")
