@@ -2,7 +2,7 @@ name: Generar fotos para redes
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # cada 30 min (GitHub puede retrasarlo unos minutos)
+    - cron: "7,22,37,52 * * * *"   # cada 15 min, en minutos "raros": GitHub retrasa o descarta los cron en :00 y :30
   workflow_dispatch:          # boton "Run workflow" para correrlo a mano
   push:
     paths:
