@@ -34,6 +34,7 @@ SHEET_CSV_POR_DEFECTO = (
     "https://docs.google.com/spreadsheets/d/e/"
     "2PACX-1vSW8cZeRPj4JAFbjGqg2SmZzyiKmwRvQfSBZrGI6gwCpJbL1YaEAio6fXOhjgpntojFaXRwDK-9PY89/pub?gid=0&single=true&output=csv"
 )
+SHEET_ID = "1nIi3iAz0ViVROLgNgG13yethEja43xr3PukkXtvbd2M"
 VERSION_RENDER = "1"  # subelo si cambias el aspecto del montaje para re-renderizar todo
 
 with open(os.path.join(RAIZ, "colores.json"), encoding="utf-8") as f:
@@ -115,15 +116,51 @@ def render(base, diseno, hexc, escala=1.0, dx=0.0, dy=0.0):
     return lienzo.resize((SALIDA, SALIDA), Image.LANCZOS)
 
 
+def descargar(url):
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept": "text/csv,*/*;q=0.8",
+    })
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return r.status, r.geturl(), r.read().decode("utf-8-sig", errors="replace")
+
+
+def candidatos(origen):
+    """Direcciones a probar, en orden. Si la primera devuelve HTML (no CSV), se sigue con la siguiente."""
+    lista = []
+    if origen:
+        lista.append(origen)
+    lista += [
+        SHEET_CSV_POR_DEFECTO,
+        f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0",
+        f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid=0",
+    ]
+    vistos = []
+    for u in lista:
+        if u not in vistos:
+            vistos.append(u)
+    return vistos
+
+
 def leer_filas(origen):
-    if re.match(r"^https?://", origen, re.I):
-        sep = "&" if "?" in origen else "?"
-        with urllib.request.urlopen(origen + sep + "nocache=1", timeout=60) as r:
-            texto = r.read().decode("utf-8-sig")
-    else:
+    if not re.match(r"^https?://", origen or "", re.I):
         with open(origen, encoding="utf-8-sig") as f:
-            texto = f.read()
-    return list(csv.DictReader(io.StringIO(texto)))
+            return list(csv.DictReader(io.StringIO(f.read())))
+    for url in candidatos(origen):
+        corto = url.split("?")[0][-60:]
+        try:
+            estado, final, texto = descargar(url)
+        except Exception as ex:
+            print(f"  x {corto}: {ex}")
+            continue
+        inicio = texto.lstrip()[:15].lower()
+        if inicio.startswith("<!doctype") or inicio.startswith("<html"):
+            print(f"  x {corto}: devolvio una pagina HTML (estado {estado}); el Sheet no esta publico para esta direccion")
+            continue
+        print(f"  ok {corto}: CSV recibido ({len(texto)} caracteres)")
+        return list(csv.DictReader(io.StringIO(texto)))
+    sys.exit("ERROR: ninguna direccion devolvio el CSV. En Google Sheets: Compartir > Acceso general > "
+             "'Cualquier persona con el enlace' (lector), y Archivo > Compartir > Publicar en la web > CSV.")
 
 
 def nombre_archivo(id_):
