@@ -1,0 +1,49 @@
+name: Generar fotos para redes
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # cada 30 min (GitHub puede retrasarlo unos minutos)
+  workflow_dispatch:          # boton "Run workflow" para correrlo a mano
+  push:
+    paths:
+      - render_posts.py
+      - colores.json
+      - assets/bases/**
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-posts
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Renderizar filas nuevas del Sheet
+        env:
+          SHEET_CSV_URL: ${{ vars.SHEET_CSV_URL }}
+        run: python render_posts.py
+
+      - name: Guardar imagenes nuevas en el repo
+        run: |
+          git config user.name "fortaleza-bot"
+          git config user.email "fortaleza-bot@users.noreply.github.com"
+          git add posts manifest.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios"
+          else
+            git commit -m "Fotos para redes: actualizacion automatica"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push
+          fi
