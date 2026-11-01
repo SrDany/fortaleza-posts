@@ -119,9 +119,9 @@ def leer_filas(origen):
     if re.match(r"^https?://", origen, re.I):
         sep = "&" if "?" in origen else "?"
         with urllib.request.urlopen(origen + sep + "nocache=1", timeout=60) as r:
-            texto = r.read().decode("utf-8")
+            texto = r.read().decode("utf-8-sig")
     else:
-        with open(origen, encoding="utf-8") as f:
+        with open(origen, encoding="utf-8-sig") as f:
             texto = f.read()
     return list(csv.DictReader(io.StringIO(texto)))
 
@@ -138,7 +138,13 @@ def main():
     manifest = json.load(open(ruta_manifest, encoding="utf-8")) if os.path.exists(ruta_manifest) else {}
 
     hechos, omitidos, errores = 0, 0, 0
-    for fila in leer_filas(origen):
+    filas = leer_filas(origen)
+    encabezados = [k for k in (filas[0].keys() if filas else []) if isinstance(k, str)]
+    print(f"Encabezados recibidos: {encabezados}")
+    con_id = sum(1 for f in filas if (f.get("id") or "").strip())
+    con_diseno = sum(1 for f in filas if (f.get("id") or "").strip() and (f.get("diseno") or "").strip())
+    print(f"Filas leidas: {len(filas)} | con id: {con_id} | con id y diseno: {con_diseno}")
+    for fila in filas:
         # DictReader guarda las celdas sobrantes bajo la clave None (como lista): se ignoran
         fila = {k.strip().lower(): (v or "").strip() for k, v in fila.items() if isinstance(k, str)}
         id_, diseno_url = fila.get("id", ""), fila.get("diseno", "")
@@ -169,7 +175,10 @@ def main():
     with open(ruta_manifest, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=1, sort_keys=True)
     print(f"Listo: {hechos} nuevas/actualizadas, {omitidos} sin cambios, {errores} con error")
-    if errores and not hechos and not omitidos:
+    if not (hechos or omitidos):
+        # Nada procesado: que la corrida falle en rojo en vez de quedar "verde" sin hacer nada
+        print("ATENCION: no se proceso ninguna fila. Revisa que el CSV publicado tenga las columnas "
+              "id y diseno (arriba salen los encabezados que se recibieron).")
         sys.exit(1)
 
 
